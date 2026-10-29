@@ -1,0 +1,57 @@
+=====================================================================
+FILE: package-lock.EXPLAINED.txt
+An explanation of the file package-lock.json (which sits next to this one)
+=====================================================================
+
+WHY THIS SEPARATE FILE EXISTS
+  package-lock.json cannot hold comments, for two reasons:
+    1. It is JSON, and JSON does not allow comments.
+    2. npm WRITES this file itself, automatically. Every time someone runs
+       "npm install", npm may rewrite it from scratch, which would delete
+       any notes added by hand.
+  So its explanation lives here instead. Never edit package-lock.json by
+  hand; let npm manage it.
+
+
+WHAT package-lock.json IS, IN PLAIN ENGLISH
+  package.json says "this project needs Express version 5.1.0 or a later
+  5.x". That is a range, not an exact version.
+
+  Express itself needs other small libraries, and those need others
+  again. In total, installing just our 2 libraries pulls in 66
+  packages.
+
+  package-lock.json is the EXACT shopping receipt: it records the precise
+  version of every one of those packages that was installed when the
+  project was built, plus a fingerprint ("integrity" code) of each one.
+
+  Analogy: package.json says "buy milk, any brand". package-lock.json
+  says "we bought Nandini toned milk, 500 ml, batch 4471" - so everyone
+  who follows the receipt gets exactly the same thing.
+
+
+WHY IT MATTERS FOR THIS ASSIGNMENT
+  When the reviewers run "npm install" on their computer, npm follows
+  this receipt. They get exactly the same versions that were tested,
+  so the project behaves for them exactly as it did for you.
+  It should be committed to Git (it is NOT in .gitignore).
+
+
+WHAT THE ENTRIES INSIDE IT LOOK LIKE
+  "node_modules/express": {
+    "version": "5.1.0",                     <- the exact version installed
+    "resolved": "https://registry.npmjs.org/express/-/express-5.1.0.tgz",
+                                            <- where it was downloaded from
+                                               (the public npm registry)
+    "integrity": "sha512-...",              <- a fingerprint: npm checks
+                                               the download matches it, so
+                                               a tampered file is refused
+    "dependencies": { ... }                 <- what express itself needs
+  }
+  The file repeats this pattern for every package.
+
+
+IF THE INTERVIEWER ASKS
+  "package.json lists what we need with allowed version ranges;
+   package-lock.json pins the exact versions of everything, including
+   indirect dependencies, so every install is identical and reproducible."

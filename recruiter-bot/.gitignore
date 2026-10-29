@@ -1,0 +1,28 @@
+# =====================================================================
+# FILE: .gitignore   -  "files Git should NOT upload"
+# =====================================================================
+# HOW TO READ THIS FILE
+#   Lines starting with # are comments. Every other line is a pattern
+#   naming files or folders that Git should ignore.
+#
+# WHAT THIS FILE DOES, IN PLAIN ENGLISH
+#   Git is the tool that records your project's history and uploads it to
+#   GitHub. This file is a "do not pack" list: anything matching a line
+#   below stays on your computer and is never uploaded.
+#   Note: the file name starts with a dot, which hides it in some folder
+#   views. That is normal.
+# =====================================================================
+
+# node_modules/ = the folder 'npm install' creates, holding the downloaded
+# libraries (Express, sql.js and everything they need: thousands of
+# files). WHY IGNORE IT: anyone can recreate it exactly by running
+# 'npm install' (package-lock.json records the exact versions), so
+# uploading it would only waste space. The trailing / means "a folder".
+node_modules/
+
+# data/*.db = any file ending in .db inside the data folder - i.e. the
+# database file data/recruiter.db. The * means "any name".
+# WHY IGNORE IT: it is created automatically from the SQL files the first
+# time the server starts, and it changes every time you add test data.
+# The SQL files (db/schema.sql, db/seed.sql) are the real source.
+data/*.db

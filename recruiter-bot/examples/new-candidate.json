@@ -1,0 +1,46 @@
+{
+  "//": [
+    "=====================================================================",
+    "FILE: examples/new-candidate.json  -  a sample 'add a candidate' request",
+    "=====================================================================",
+    "HOW TO READ THIS FILE",
+    "  JSON files cannot contain normal comments, so explanations are stored",
+    "  in extra entries whose names start with //. The server simply ignores",
+    "  any entry it does not recognise, so these do no harm.",
+    "",
+    "WHAT THIS FILE IS, IN PLAIN ENGLISH",
+    "  A ready-made form for adding ONE new candidate, so you don't have to",
+    "  type the details by hand. You send it to the server with the POST",
+    "  /candidates request. The server checks it, saves it, and replies with",
+    "  '201 Created' and the new candidate (who gets the next id, e.g. 16).",
+    "",
+    "HOW TO USE IT (in a second terminal, while 'npm run dev' is running)",
+    "  Windows PowerShell:",
+    "    curl.exe -X POST http://localhost:3000/candidates -H \"Content-Type: application/json\" --data \"@examples/new-candidate.json\"",
+    "  (-X POST = send data;  -H = tell the server it is JSON;",
+    "   --data @file = send this file's contents.)",
+    "",
+    "  Then open http://localhost:3000/jobs/1/matches - Lisbeth now appears",
+    "  as the 2nd-best Backend Detective (she has 2 of the 3 skills).",
+    "  Sending the same file twice gives '409 already exists'.",
+    "  To remove her again: npm run seed"
+  ],
+
+  "// name": "REQUIRED. The person's name. Must not already exist.",
+  "name": "Lisbeth S.",
+
+  "// experience_years": "REQUIRED. Whole number, 0 or more.",
+  "experience_years": 6,
+
+  "// availability": "REQUIRED. Must be exactly one of: Immediate, 2 weeks, Not looking.",
+  "availability": "Immediate",
+
+  "// skills": "REQUIRED. A list with at least one skill. New skill words (like 'security') are added to the skills dictionary automatically. Capitals/spaces are tidied: 'Public Speaking' becomes 'public-speaking'.",
+  "skills": ["forensics", "security", "deduction"],
+
+  "// traits": "OPTIONAL. Personality words. 'autonomous' matches Backend Detective's culture keyword, earning culture points.",
+  "traits": ["autonomous", "blunt"],
+
+  "// quirk": "OPTIONAL. A fun one-line description.",
+  "quirk": "Finds the bug before you finish describing it."
+}

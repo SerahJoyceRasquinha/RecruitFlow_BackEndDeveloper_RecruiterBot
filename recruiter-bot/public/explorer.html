@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<!--
+=====================================================================
+FILE: public/explorer.html   -  "a simple viewing window onto the API"
+=====================================================================
+HOW TO READ THIS FILE
+  This one file holds three kinds of code:
+    1. HTML  - the page's content and layout (headings, dropdowns, boxes).
+               Written as "tags" like <h2>Title</h2>.
+    2. CSS   - a few basic looks (inside <style> ... </style>).
+    3. JavaScript - the behaviour: what happens when you pick something
+               (inside <script> ... </script>).
+  Text between the symbols that open and close THIS note is an HTML
+  comment; in CSS and JavaScript, comments start with /* or //.
+  Comments are never shown on the page.
+
+WHAT THIS PAGE IS, IN PLAIN ENGLISH
+  The assignment says no frontend is needed, and this is NOT one: there
+  is no React, no framework, no build step, and almost no styling.
+  It is a convenience page for DEMONSTRATING the backend. It does
+  exactly what the "curl" command does - calls the API's web addresses
+  and shows what comes back - but with dropdown menus, so nobody has to
+  type addresses by hand.
+
+  Section 1: pick a CANDIDATE  -> see the jobs that fit them best
+             (calls GET /candidates/:id/matches)
+  Section 2: pick a JOB        -> see the candidates that fit it best
+             (calls GET /jobs/:id/matches, with the optional
+              "available only" filter)
+  Section 3: pick a PART 2 QUESTION -> see its answer
+             (calls GET /detective or GET /detective/:n)
+
+  Every result is shown THREE ways:
+    * the exact address that was called (click it to open the raw JSON
+      in a new tab - the original addresses all still work by themselves)
+    * a simple table, easy to read
+    * the raw JSON, exactly as the API returned it
+
+HOW TO OPEN IT
+  1. Start the server:      npm run dev
+  2. Open in a browser:     http://localhost:3000/explorer
+  The server sends this file when that address is visited
+  (see the GET /explorer route in src/app.js).
+
+HOW THE PAGE TALKS TO THE SERVER
+  The JavaScript uses fetch(...), the browser's built-in way to call a
+  web address in the background and read the reply - without leaving
+  the page. Because this page is served by the same server (same
+  "localhost:3000"), no extra set-up is needed.
+=====================================================================
+-->
+
+<!-- <html lang="en"> = the start of the page; lang="en" says it is in English. -->
+<html lang="en">
+
+<!-- ================================================================
+     <head> = information ABOUT the page (not shown in the page itself).
+     ================================================================ -->
+<head>
+  <!-- Use the standard character set, so symbols display correctly. -->
+  <meta charset="utf-8">
+  <!-- Make the page fit phone screens instead of appearing tiny. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The text shown on the browser tab. -->
+  <title>Recruiter Bot - API Explorer</title>
+
+  <!-- ==============================================================
+       CSS - a few basic looks. Deliberately minimal: readable, not fancy.
+       FORMAT:  what-to-style { property: value; }
+       ============================================================== -->
+  <style>
+    /* The whole page: a plain font, comfortable width, centred, some
+       space around the edges, dark text on white. */
+    body { font-family: Arial, sans-serif; max-width: 1100px; margin: 0 auto; padding: 16px; color: #222; background: #fff; }
+    /* Each of the three sections: a light border and spacing. */
+    section { border: 1px solid #ccc; padding: 12px 16px; margin: 16px 0; }
+    /* Section headings: no extra space above them. */
+    h2 { margin-top: 0; }
+    /* Dropdowns, number boxes and labels: a bit of space between them. */
+    select, input, label { margin: 4px 8px 4px 0; font-size: 14px; }
+    /* Tables: full width, lines between cells. */
+    table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 13px; }
+    th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: left; vertical-align: top; }
+    /* Table header row: light grey background. */
+    th { background: #f2f2f2; }
+    /* Boxes showing JSON or SQL: monospace font, grey background, keep
+       line breaks, scroll sideways if too wide, limit the height. */
+    pre { background: #f6f6f6; border: 1px solid #ddd; padding: 8px; overflow: auto; max-height: 360px; font-size: 12px; white-space: pre; }
+    /* Small grey helper text. */
+    .note { color: #666; font-size: 13px; }
+    /* Error messages in red. */
+    .error { color: #b00020; }
+    /* Wide tables scroll sideways on small screens instead of breaking the page. */
+    .table-wrap { overflow-x: auto; }
+  </style>
+</head>
+
+<!-- ================================================================
+     <body> = everything actually shown on the page.
+     ================================================================ -->
+<body>
+
+  <!-- Page title and a one-line explanation. -->
+  <h1>Recruiter Bot - API Explorer</h1>
+  <p class="note">
+    A plain page for trying the backend API. It only calls the API addresses and shows what they return.
+    The raw addresses also work on their own, for example
+    <!-- <a href="..."> = a clickable link. target="_blank" = open in a new tab. -->
+    <a href="/jobs/1/matches" target="_blank">/jobs/1/matches</a>,
+    <a href="/candidates/1/matches" target="_blank">/candidates/1/matches</a>,
+    <a href="/detective" target="_blank">/detective</a> and
+    <a href="/" target="_blank">/</a> (list of all endpoints).
+  </p>
+
+  <!-- ==============================================================
+       SECTION 1: CANDIDATE -> MATCHING JOBS
+       Each element has an id="..." (a unique name), so the JavaScript
+       further down can find it and fill it in.
+       ============================================================== -->
+  <section>
+    <h2>1. Candidate &rarr; best-fitting jobs</h2>
+    <!-- A dropdown menu. It starts empty; the JavaScript fills it with
+         the 15 candidates from GET /candidates when the page loads. -->
+    <label>Candidate: <select id="cand-select"></select></label>
+    <!-- A number box for "how many results" (the ?limit= setting).
+         min/max limit the allowed values; value="10" is the default. -->
+    <label>Limit: <input id="cand-limit" type="number" min="1" max="100" value="10" style="width:60px"></label>
+    <!-- Empty boxes, filled in by the JavaScript after each request:
+         the address called, a summary line, the table, the raw JSON. -->
+    <p id="cand-request" class="note"></p>
+    <p id="cand-summary"></p>
+    <div id="cand-table" class="table-wrap"></div>
+    <!-- <details> = a section that can be opened/closed by clicking its
+         <summary> line. Used to keep long JSON out of the way. -->
+    <details open><summary>Raw JSON response</summary><pre id="cand-json"></pre></details>
+  </section>
+
+  <!-- ==============================================================
+       SECTION 2: JOB -> MATCHING CANDIDATES
+       Same layout, plus a tick-box for the "available only" filter.
+       ============================================================== -->
+  <section>
+    <h2>2. Job &rarr; best-fitting candidates</h2>
+    <label>Job: <select id="job-select"></select></label>
+    <label>Limit: <input id="job-limit" type="number" min="1" max="100" value="10" style="width:60px"></label>
+    <!-- A tick-box. Ticked = add ?available_only=true, which hides
+         candidates who are "Not looking". -->
+    <label><input id="job-available" type="checkbox"> Available only (hide "Not looking")</label>
+    <p id="job-request" class="note"></p>
+    <p id="job-summary"></p>
+    <div id="job-table" class="table-wrap"></div>
+    <details open><summary>Raw JSON response</summary><pre id="job-json"></pre></details>
+  </section>
+
+  <!-- ==============================================================
+       SECTION 3: PART 2 - SQL DETECTIVE
+       Pick one question (or all five) and see the answer, plus the SQL
+       that produced it.
+       ============================================================== -->
+  <section>
+    <h2>3. Part 2: SQL Detective</h2>
+    <!-- The options are filled in by the JavaScript from GET /detective. -->
+    <label>Question: <select id="det-select"></select></label>
+    <p id="det-request" class="note"></p>
+    <!-- Where the answer(s) appear: a title, a table and the SQL, per question. -->
+    <div id="det-output"></div>
+    <details><summary>Raw JSON response</summary><pre id="det-json"></pre></details>
+  </section>
+
+
+  <!-- ==============================================================
+       JAVASCRIPT - the page's behaviour.
+       Runs once the page has loaded (because it is placed at the very
+       end of <body>, after all the elements it needs already exist).
+       ============================================================== -->
+  <script>
+    // -----------------------------------------------------------------
+    // SMALL HELPERS
+    // -----------------------------------------------------------------
+
+    // $(id) - find an element on the page by its id.
+    // Example: $('cand-select') returns the candidate dropdown.
+    // (Just a short nickname for the browser's document.getElementById.)
+    function $(id) {
+      return document.getElementById(id);
+    }
+
+    // getJson(url) - call one of the API addresses and read the reply.
+    //   "async" + "await" = wait for the reply to arrive before carrying on.
+    //   Example: await getJson('/jobs/1/matches')
+    //            -> { job: {...}, matches: [...] }
+    //   If the server replies with an error status (e.g. 404), this
+    //   still returns the JSON, which then contains an "error" message.
+    async function getJson(url) {
+      // Send the request (a GET, the default) and wait for the reply.
+      const response = await fetch(url);
+      // Turn the reply's JSON text into a JavaScript object.
+      return response.json();
+    }
+
+    // showRequest(elementId, url) - show which address was called, as a
+    // clickable link that opens the raw JSON in a new tab.
+    // Example display:  Request: GET /jobs/1/matches?limit=10
+    function showRequest(elementId, url) {
+      const box = $(elementId);
+      // Empty the box first.
+      box.textContent = 'Request: GET ';
+      // Make a link element <a>, set its address and text, open in new tab.
+      const link = document.createElement('a');
+      link.href = url;
+      link.textContent = url;
+      link.target = '_blank';
+      // Put the link inside the box.
+      box.appendChild(link);
+    }
+
+    // showJson(elementId, data) - print the raw JSON neatly.
+    //   JSON.stringify(data, null, 2) = turn the object back into text,
+    //   indented by 2 spaces per level so it is easy to read.
+    function showJson(elementId, data) {
+      $(elementId).textContent = JSON.stringify(data, null, 2);
+    }
+
+    // renderTable(columns, rows) - build a simple HTML table.
+    //   columns = the headings, e.g. ['Rank', 'Job', 'Score']
+    //   rows    = a list of rows, each a list of cell values,
+    //             e.g. [[1, 'Incident Commander', 90], [2, 'Sales Engineer', 45]]
+    //   Returns the finished <table> element.
+    //
+    //   SAFETY NOTE: every cell is filled with ".textContent", which always
+    //   treats the value as plain text. Data can never be mistaken for
+    //   page code this way.
+    function renderTable(columns, rows) {
+      // Create the table and its header row.
+      const table = document.createElement('table');
+      const headerRow = table.insertRow();
+      // One <th> (header cell) per column heading.
+      for (const name of columns) {
+        const th = document.createElement('th');
+        th.textContent = name;
+        headerRow.appendChild(th);
+      }
+      // One table row per data row, one cell per value.
+      for (const row of rows) {
+        const tr = table.insertRow();
+        for (const value of row) {
+          // Show empty database values (null) as a dash, to be clear.
+          tr.insertCell().textContent = value === null ? '-' : value;
+        }
+      }
+      return table;
+    }
+
+    // showTable(elementId, columns, rows) - put a table into a box,
+    // or a short message if there are no rows.
+    function showTable(elementId, columns, rows) {
+      const box = $(elementId);
+      // Clear out whatever was shown before.
+      box.innerHTML = '';
+      if (rows.length === 0) {
+        box.textContent = 'No matches.';
+      } else {
+        box.appendChild(renderTable(columns, rows));
+      }
+    }
+
+    // showError(elementId, error) - show a red message if something failed,
+    // most often because the server isn't running.
+    function showError(elementId, error) {
+      const box = $(elementId);
+      box.className = 'error';
+      box.textContent = 'Could not reach the API. Is the server running (npm run dev)? Details: ' + error;
+    }
+
+    // addOption(select, value, text) - add one choice to a dropdown.
+    // Example: addOption($('job-select'), 1, '1 - Backend Detective')
+    function addOption(select, value, text) {
+      const option = document.createElement('option');
+      option.value = value;      // what the code reads, e.g. 1
+      option.textContent = text; // what the user sees
+      select.appendChild(option);
+    }
+
+    // breakdownText(b) - turn the score breakdown into short text.
+    // Example: { skills: 60, experience: 20, culture: 5, availability: 10 }
+    //       -> "60 + 20 + 5 + 10"
+    function breakdownText(b) {
+      return b.skills + ' + ' + b.experience + ' + ' + b.culture + ' + ' + b.availability;
+    }
+
+
+    // -----------------------------------------------------------------
+    // SECTION 1: CANDIDATE -> JOBS
+    // -----------------------------------------------------------------
+
+    // loadCandidateMatches() - called whenever the candidate or the limit
+    // changes. Builds the address, calls it, and shows the result.
+    async function loadCandidateMatches() {
+      // Read the chosen candidate's id and the limit from the page.
+      const id = $('cand-select').value;
+      const limit = $('cand-limit').value;
+      // Build the address, e.g. /candidates/12/matches?limit=10
+      const url = '/candidates/' + id + '/matches?limit=' + limit;
+      // Show which address is being called.
+      showRequest('cand-request', url);
+      // Reset the summary's look, in case an earlier error turned it red.
+      $('cand-summary').className = '';
+      try {
+        // Call the API and wait for the reply.
+        const data = await getJson(url);
+        // Always show the raw JSON exactly as received.
+        showJson('cand-json', data);
+        // If the API replied with an error (e.g. 404), show it and stop.
+        if (data.error) { $('cand-summary').textContent = data.error; $('cand-table').innerHTML = ''; return; }
+        // A one-line summary of who this is.
+        $('cand-summary').textContent =
+          data.candidate.name + ' (availability: ' + data.candidate.availability + ') - ' +
+          data.matches.length + ' matching job(s), best first. Score breakdown = skills + experience + culture + availability.';
+        // Turn each match into a table row.
+        // .map((m, i) => [...]) builds one row per match; i + 1 = rank.
+        const rows = data.matches.map((m, i) => [
+          i + 1, m.job_title, m.score, breakdownText(m.breakdown), m.reason,
+        ]);
+        showTable('cand-table', ['Rank', 'Job', 'Score', 'Breakdown', 'Reason'], rows);
+      } catch (error) {
+        // The request itself failed (server stopped?): show a red message.
+        showError('cand-summary', error);
+      }
+    }
+
+
+    // -----------------------------------------------------------------
+    // SECTION 2: JOB -> CANDIDATES
+    // -----------------------------------------------------------------
+
+    // loadJobMatches() - same idea as above, for jobs.
+    async function loadJobMatches() {
+      const id = $('job-select').value;
+      const limit = $('job-limit').value;
+      // Build the address. Add the filter only if the tick-box is ticked.
+      // Example: /jobs/4/matches?limit=10&available_only=true
+      let url = '/jobs/' + id + '/matches?limit=' + limit;
+      if ($('job-available').checked) url += '&available_only=true';
+      showRequest('job-request', url);
+      // Reset the summary's look, in case an earlier error turned it red.
+      $('job-summary').className = '';
+      try {
+        const data = await getJson(url);
+        showJson('job-json', data);
+        if (data.error) { $('job-summary').textContent = data.error; $('job-table').innerHTML = ''; return; }
+        $('job-summary').textContent =
+          data.job.title + ' (needs ' + data.job.min_experience + '+ yrs) - ' +
+          data.matches.length + ' matching candidate(s), best first. Score breakdown = skills + experience + culture + availability.';
+        const rows = data.matches.map((m, i) => [
+          i + 1, m.candidate_name, m.score, breakdownText(m.breakdown), m.reason,
+        ]);
+        showTable('job-table', ['Rank', 'Candidate', 'Score', 'Breakdown', 'Reason'], rows);
+      } catch (error) {
+        showError('job-summary', error);
+      }
+    }
+
+
+    // -----------------------------------------------------------------
+    // SECTION 3: SQL DETECTIVE
+    // -----------------------------------------------------------------
+
+    // showDetectiveAnswer(answer) - add one question's answer to the page:
+    // its title, its results table, and its SQL (in a closed box).
+    function showDetectiveAnswer(answer) {
+      const output = $('det-output');
+      // The question as a heading.
+      const heading = document.createElement('h3');
+      heading.textContent = answer.title;
+      output.appendChild(heading);
+      // The results table. Each row object, e.g. { recruiter_name: 'Priya Shah', ... },
+      // is turned into a plain list of its values, in column order.
+      const rows = answer.rows.map(row => answer.columns.map(col => row[col]));
+      const wrap = document.createElement('div');
+      wrap.className = 'table-wrap';
+      wrap.appendChild(renderTable(answer.columns, rows));
+      output.appendChild(wrap);
+      // The SQL that produced it, inside an openable box.
+      const details = document.createElement('details');
+      const summary = document.createElement('summary');
+      summary.textContent = 'Show the SQL for this question';
+      const pre = document.createElement('pre');
+      pre.textContent = answer.sql;
+      details.appendChild(summary);
+      details.appendChild(pre);
+      output.appendChild(details);
+    }
+
+    // loadDetective() - called when the question dropdown changes.
+    // "all" shows all five; otherwise just the chosen number.
+    async function loadDetective() {
+      const choice = $('det-select').value;
+      // Example addresses: /detective   or   /detective/3
+      const url = choice === 'all' ? '/detective' : '/detective/' + choice;
+      showRequest('det-request', url);
+      // Clear the previous answer(s), and reset the look in case of an earlier error.
+      $('det-output').innerHTML = '';
+      $('det-output').className = '';
+      try {
+        const data = await getJson(url);
+        showJson('det-json', data);
+        if (data.error) { $('det-output').textContent = data.error; return; }
+        // /detective returns a LIST of answers; /detective/3 returns ONE.
+        // Array.isArray tells them apart; either way, show each answer.
+        const answers = Array.isArray(data) ? data : [data];
+        answers.forEach(showDetectiveAnswer);
+      } catch (error) {
+        showError('det-output', error);
+      }
+    }
+
+
+    // -----------------------------------------------------------------
+    // START-UP: fill the dropdowns, connect them, show first results.
+    // -----------------------------------------------------------------
+    async function start() {
+      try {
+        // Ask the API for the candidate list and fill dropdown 1.
+        // Example option text: "1 - Sherlock H. (8 yrs, Immediate)"
+        const candidates = await getJson('/candidates');
+        for (const c of candidates) {
+          addOption($('cand-select'), c.id, c.id + ' - ' + c.name + ' (' + c.experience_years + ' yrs, ' + c.availability + ')');
+        }
+
+        // Ask for the job list and fill dropdown 2.
+        // Example option text: "1 - Backend Detective (min 3 yrs)"
+        const jobs = await getJson('/jobs');
+        for (const j of jobs) {
+          addOption($('job-select'), j.id, j.id + ' - ' + j.title + ' (min ' + j.min_experience + ' yrs)');
+        }
+
+        // Fill dropdown 3: an "all" choice, then one per question.
+        addOption($('det-select'), 'all', 'All 5 questions');
+        const questions = await getJson('/detective');
+        for (const q of questions) {
+          addOption($('det-select'), q.number, q.title);
+        }
+      } catch (error) {
+        // If even the lists can't load, the server is probably not running.
+        showError('cand-summary', error);
+        return;
+      }
+
+      // CONNECT THE CONTROLS: whenever one changes, reload that section.
+      // addEventListener('change', fn) = "when this changes, run fn".
+      // ('input' fires on every keystroke in the number boxes.)
+      $('cand-select').addEventListener('change', loadCandidateMatches);
+      $('cand-limit').addEventListener('input', loadCandidateMatches);
+      $('job-select').addEventListener('change', loadJobMatches);
+      $('job-limit').addEventListener('input', loadJobMatches);
+      $('job-available').addEventListener('change', loadJobMatches);
+      $('det-select').addEventListener('change', loadDetective);
+
+      // Show the first candidate, first job and all Part 2 answers straight
+      // away, so the page is useful the moment it opens.
+      loadCandidateMatches();
+      loadJobMatches();
+      loadDetective();
+    }
+
+    // Run the start-up steps.
+    start();
+  </script>
+</body>
+</html>

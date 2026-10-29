@@ -1,0 +1,33 @@
+=====================================================================
+FOLDER: data/
+=====================================================================
+
+WHAT THIS FOLDER IS FOR, IN PLAIN ENGLISH
+  This folder holds the Recruiter Bot's database file, recruiter.db.
+  It may be empty (apart from this note) until the server runs for the
+  first time.
+
+HOW recruiter.db GETS HERE
+  The first time you run "npm run dev", src/db.js notices the file is
+  missing and builds it from:
+    db/schema.sql   - the empty tables
+    db/seed.sql     - the 15 candidates and 6 jobs
+    db/matching.sql - the scoring calculation
+  and saves the result here as recruiter.db.
+
+  After that, the server loads this file each time it starts, so data you
+  add with POST requests is kept between restarts.
+
+TO RESET IT
+  Run "npm run seed". It throws away the current recruiter.db and builds a
+  fresh one with only the original data. (Deleting the file by hand works
+  too: it is rebuilt on the next start.)
+
+WHY recruiter.db IS NOT UPLOADED TO GITHUB
+  The .gitignore file lists "data/*.db", so Git skips it. It is generated
+  automatically, so the SQL files are the real source of truth.
+
+CAN I OPEN recruiter.db?
+  It is a binary SQLite file, so it looks like gibberish in a text editor.
+  A free tool such as "DB Browser for SQLite" can open it and show the
+  tables like spreadsheets, if you are curious.

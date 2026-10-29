@@ -1,0 +1,92 @@
+{
+  "//": [
+    "=====================================================================",
+    "FILE: package.json  -  the project's 'ID card and instruction sheet'",
+    "=====================================================================",
+    "HOW TO READ THIS FILE",
+    "  This is a JSON file. JSON does NOT allow normal comments (adding them",
+    "  would stop npm from reading the file). So the explanations are stored",
+    "  in extra entries whose names start with // (like this one). npm",
+    "  officially ignores entries named this way, so they change nothing.",
+    "",
+    "  JSON basics: everything is written as  \"name\": value  pairs inside",
+    "  curly brackets { }. Text is in double quotes. Lists use [ ].",
+    "",
+    "WHAT THIS FILE DOES, IN PLAIN ENGLISH",
+    "  npm (Node Package Manager, installed together with Node.js) reads this",
+    "  file to learn: the project's name, which ready-made libraries it needs",
+    "  to download, and what the short commands like 'npm run dev' mean.",
+    "  Analogy: the label and recipe card on a meal kit - what's in the box,",
+    "  and how to cook it.",
+    "",
+    "THE TWO COMMANDS THAT RUN THE PROJECT",
+    "  npm install  -> reads 'dependencies' below and downloads Express and",
+    "                  sql.js into a folder called node_modules.",
+    "  npm run dev  -> looks up 'dev' under 'scripts' below and runs it."
+  ],
+
+  "// name": "The project's name. Lower-case, no spaces (npm's rule).",
+  "name": "recruiter-bot",
+
+  "// version": "The project's version number: MAJOR.MINOR.PATCH. 1.0.0 = first complete version.",
+  "version": "1.0.0",
+
+  "// description": "A one-sentence summary of what the project does.",
+  "description": "Recruiter Bot - ranks candidates for jobs (and jobs for candidates) using hand-written SQL on SQLite.",
+
+  "// main": "The project's main/entry file: the one that starts everything (see src/server.js).",
+  "main": "src/server.js",
+
+  "// scripts": [
+    "SHORTCUT COMMANDS. Each entry is  \"shortcut\": \"the real command it runs\".",
+    "You type  npm run <shortcut>  (or just  npm start / npm test  for those two).",
+    "",
+    "dev       -> npm run dev       Starts the server and AUTO-RESTARTS it whenever",
+    "                               you save a .js file ('node --watch' = keep",
+    "                               watching for changes). Use this while working.",
+    "start     -> npm start         Starts the server once, without auto-restart.",
+    "seed      -> npm run seed      Wipes the database and reloads the 15 candidates",
+    "                               and 6 jobs (runs scripts/seed.js).",
+    "detective -> npm run detective Runs the Part 2 SQL Detective answers and prints",
+    "                               them as tables (runs scripts/run-detective.js).",
+    "test      -> npm test          Runs the 13 automatic checks in tests/api.test.js",
+    "                               using Node's built-in test tool ('node --test')."
+  ],
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "seed": "node scripts/seed.js",
+    "detective": "node scripts/run-detective.js",
+    "test": "node --test tests/api.test.js"
+  },
+
+  "// engines": [
+    "WHICH VERSION OF NODE.JS IS NEEDED: 18.18 or newer ('>=' means 'at least').",
+    "Older versions lack features this project uses ('node --watch', the",
+    "built-in 'fetch' used by the tests). Check yours by typing: node --version"
+  ],
+  "engines": {
+    "node": ">=18.18"
+  },
+
+  "// dependencies": [
+    "READY-MADE LIBRARIES THE PROJECT NEEDS. 'npm install' downloads these.",
+    "",
+    "express  - makes it easy to build a web server: we just say 'when someone",
+    "           visits /jobs/1/matches, run this function' (see src/app.js).",
+    "sql.js   - the SQLite database engine, packaged so it installs on any",
+    "           computer without extra build tools (see src/db.js).",
+    "",
+    "THE VERSION NUMBERS: '^5.1.0' means 'version 5.1.0 or any later 5.x.x",
+    "release' (the ^ allows safe updates but never a new major version 6,",
+    "which might work differently). The exact versions actually installed are",
+    "recorded in package-lock.json.",
+    "",
+    "WHY ONLY TWO: fewer libraries = less to install, less to go wrong, and",
+    "less code to explain. Everything else uses tools built into Node.js."
+  ],
+  "dependencies": {
+    "express": "^5.1.0",
+    "sql.js": "^1.12.0"
+  }
+}

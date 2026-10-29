@@ -1,0 +1,37 @@
+{
+  "//": [
+    "=====================================================================",
+    "FILE: examples/new-job.json  -  a sample 'add a job' request",
+    "=====================================================================",
+    "HOW TO READ THIS FILE",
+    "  JSON files cannot contain normal comments, so explanations are stored",
+    "  in extra entries whose names start with //. The server ignores them.",
+    "",
+    "WHAT THIS FILE IS, IN PLAIN ENGLISH",
+    "  A ready-made form for adding ONE new job opening. You send it to the",
+    "  server with the POST /jobs request. It gets the next id (e.g. 7).",
+    "",
+    "HOW TO USE IT (in a second terminal, while 'npm run dev' is running)",
+    "  Windows PowerShell:",
+    "    curl.exe -X POST http://localhost:3000/jobs -H \"Content-Type: application/json\" --data \"@examples/new-job.json\"",
+    "",
+    "  Then open http://localhost:3000/jobs/7/matches to see who fits it",
+    "  best. Sherlock should be near the top (2 of the 3 skills, analytical).",
+    "  To remove it again: npm run seed"
+  ],
+
+  "// title": "REQUIRED. The job title. Must not already exist.",
+  "title": "Security Analyst",
+
+  "// min_experience": "REQUIRED. Minimum years of experience, a whole number 0 or more.",
+  "min_experience": 4,
+
+  "// required_skills": "REQUIRED. At least one skill. These are worth up to 60 of the 100 points when scoring candidates.",
+  "required_skills": ["security", "forensics", "pattern-recognition"],
+
+  "// culture_keywords": "OPTIONAL. Personality words the team values. Worth up to 10 points when a candidate's traits match.",
+  "culture_keywords": ["analytical", "autonomous"],
+
+  "// tagline": "OPTIONAL. A fun one-line description of the job.",
+  "tagline": "Trust nothing. Log everything."
+}
