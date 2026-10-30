@@ -87,6 +87,91 @@ curl.exe -X POST http://localhost:3000/jobs -H "Content-Type: application/json" 
 
 ---
 
+## What you will see (output screenshots)
+
+The screenshots below come from the explorer page at `http://localhost:3000/explorer`. The page is not a frontend: it calls the same API endpoints that curl would and shows the results as tables. Under every section there is a **Raw JSON response** box that shows the exact JSON the API returned (closed in these screenshots to save space).
+
+### The explorer page
+
+![Explorer page overview](docs/images/01-explorer-overview.png)
+
+The page has three sections, one under the other:
+
+1. **Candidate → best-fitting jobs** (Part 1)
+2. **Job → best-fitting candidates** (Part 1)
+3. **Part 2: SQL Detective**
+
+Each section shows the **Request** line (the exact API address that was called; click it to open the raw JSON in a new tab), a one-line **summary**, a **results table**, and the **raw JSON**.
+
+### Section 1: Candidate → best-fitting jobs
+
+![Candidate matches for Olivia P.](docs/images/02-candidate-matches.png)
+
+Pick a candidate from the **Candidate** dropdown. This calls `GET /candidates/{id}/matches`. **Limit** sets how many results to show (`?limit=`).
+
+- **Summary line:** the candidate's name, availability and how many jobs matched.
+- **Rank:** 1 is the best fit.
+- **Job:** the job title.
+- **Score:** the match score out of 100.
+- **Breakdown:** the points behind the score, in the order skills + experience + culture + availability (maximums 60 + 20 + 10 + 10).
+- **Reason:** a plain-English explanation: which required skills matched or are missing, experience against the job's minimum, any culture keyword match, and availability.
+
+In the example, Olivia P. fits **Incident Commander** best with 90: she has all 3 required skills (60), 13 years against 4 needed (20), matches the culture keyword "decisive" (5), and is available in 2 weeks (5). Jobs where she shares no required skill are not listed.
+
+### Section 2: Job → best-fitting candidates
+
+![Job matches for Sales Engineer](docs/images/03-job-matches.png)
+
+Pick a job from the **Job** dropdown. This calls `GET /jobs/{id}/matches`. The columns mean the same as in Section 1, with **Candidate** instead of Job.
+
+In the example, **Dwight S.** ranks first for Sales Engineer with 70: he has 2 of the 3 required skills (40), enough experience (20), no culture keyword match (0), and is available immediately (10). Michael S. has the same skill and experience points but ranks lower because he is "Not looking" (0 availability points).
+
+**The "Available only" filter**
+
+![Job matches with the available-only filter](docs/images/04-job-available-only.png)
+
+Ticking **Available only** adds `?available_only=true` to the request and hides candidates whose availability is "Not looking". Without the filter, such candidates still appear but rank lower. In the example, Miranda P., Tony S. and Michael S. are hidden for Engineering Manager, leaving 3 candidates.
+
+### Section 3: Part 2, SQL Detective
+
+![SQL Detective question 3](docs/images/05-sql-detective-q3.png)
+
+Pick a question from the **Question** dropdown. This calls `GET /detective/{n}`, which runs that query from `sql_detective/sql_detective.sql` on the Part 2 hiring dataset (loaded unchanged into a temporary database).
+
+- **Heading:** the question.
+- **Table:** the query's result. The column names come straight from the SQL.
+- **Show the SQL for this question:** opens the exact SQL used, with its comments.
+
+The example shows Q3, the main data trap: **Ananya Rao** has two applicant records whose emails differ only in capital letters. Grouping by lower-cased email treats them as one person who applied to 2 postings.
+
+Choosing **All 5 questions** calls `GET /detective` and shows every answer:
+
+![All SQL Detective answers](docs/images/06-sql-detective-all.png)
+
+| Question | Answer |
+|---|---|
+| Q1: Open postings with recruiter name | Postings 1, 2, 4, 5 |
+| Q2: Applicants who reached the Final stage, per posting | 2, 2, 1, 2, 0, 0, 2 |
+| Q3: People who applied to more than one posting | Ananya Rao, Ben Turner, Elena Popescu |
+| Q4: Final-stage conversion rate (at least 3 Finals) | Priya Shah 0.75, Daniel Ortiz 0.50 |
+| Q5: Top recruiter per department (window function) | Data: Fatima Al-Sayed, Engineering: Priya Shah |
+
+### The raw API response
+
+![Raw JSON from /jobs/1/matches](docs/images/07-raw-json-job-matches.png)
+
+Opening an endpoint directly, such as `http://localhost:3000/jobs/1/matches`, returns plain JSON. This is what curl receives too:
+
+- **`job`:** the job that was asked about.
+- **`matches`:** the ranked list, best first. Each entry has:
+  - `candidate_id`, `candidate_name`: who it is
+  - `score`: 0 to 100
+  - `breakdown`: points per factor (`skills`, `experience`, `culture`, `availability`)
+  - `matched_skills` / `missing_skills`: required skills the candidate has and lacks
+  - `reason`: the one-line explanation
+
+---
+
 ## What this project is
 
 ### Goal
@@ -200,17 +285,6 @@ flowchart LR
 
 **Example: Sherlock H. for "Backend Detective".** He has all 3 required skills (60), 8 years against 3 needed (20), 1 of 2 culture words (5), and is available immediately (10), for a total of **95**.
 
-```json
-{
-  "candidate_name": "Sherlock H.",
-  "score": 95,
-  "breakdown": { "skills": 60, "experience": 20, "culture": 5, "availability": 10 },
-  "matched_skills": ["deduction", "pattern-recognition", "forensics"],
-  "missing_skills": [],
-  "reason": "Skills 3/3 (deduction, pattern-recognition, forensics); 8 yrs (needs 3+); culture fit: analytical; available immediately"
-}
-```
-
 ### Database design
 
 Skills and traits are stored once each, in "dictionary" tables. Link tables connect them to candidates and jobs, so finding overlap is a simple join.
@@ -256,14 +330,6 @@ flowchart LR
     B --> E["GET /detective<br/>(JSON + explorer page)"]
 ```
 
-| Question | Answer |
-|---|---|
-| Q1: Open postings with recruiter name | Postings 1, 2, 4, 5 |
-| Q2: Applicants who reached the Final stage, per posting | 2, 2, 1, 2, 0, 0, 2 |
-| Q3: People who applied to more than one posting | Ananya Rao, Ben Turner, Elena Popescu |
-| Q4: Final-stage conversion rate (at least 3 Finals) | Priya Shah 0.75, Daniel Ortiz 0.50 |
-| Q5: Top recruiter per department (window function) | Data: Fatima Al-Sayed, Engineering: Priya Shah |
-
 Key trap handled: **Ananya Rao has two applicant records** whose emails differ only in capital letters, so people are identified by `LOWER(TRIM(email))`, not by id.
 
 ---
@@ -294,6 +360,8 @@ RecruitFlow_BackEndDeveloper_RecruiterBot/
 ├── examples/
 │   ├── new-candidate.json      # sample body for POST /candidates
 │   └── new-job.json            # sample body for POST /jobs
+├── docs/
+│   └── images/                 # screenshots used in this README
 ├── data/                       # recruiter.db is created here on first run
 ├── package.json                # dependencies and npm commands
 ├── package-lock.json           # exact installed versions (auto-generated)
